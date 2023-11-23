@@ -1,8 +1,8 @@
-Health Club
+Health House
 
 --Descrição--
 
-O Health Club é um aplicativo desenvolvido em React Native projetado para promover hábitos saudáveis e melhorar a saúde geral dos usuários. 
+O Health House é um aplicativo desenvolvido em React Native projetado para promover hábitos saudáveis e melhorar a saúde geral dos usuários. 
 Combinando rastreamento de hábitos e lembretes de hidratação, o aplicativo oferece uma abordagem holística para o bem-estar.
 
 -- Funcionalidades --
