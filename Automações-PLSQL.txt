@@ -1,0 +1,137 @@
+CREATE OR REPLACE FUNCTION criar_tabela_user_e_inserir RETURN VARCHAR2 IS
+BEGIN
+   -- Criação da tabela
+   EXECUTE IMMEDIATE 'CREATE TABLE "User" (
+                        id NUMBER PRIMARY KEY,
+                        name VARCHAR2(255),
+                        email VARCHAR2(255) UNIQUE,
+                        cpf VARCHAR2(11) UNIQUE,
+                        password VARCHAR2(255)
+                     )';
+
+   -- Criação da sequência
+   EXECUTE IMMEDIATE 'CREATE SEQUENCE user_seq START WITH 1 INCREMENT BY 1';
+
+   -- Criação do gatilho
+   EXECUTE IMMEDIATE 'CREATE OR REPLACE TRIGGER user_trigger
+                      BEFORE INSERT ON "User"
+                      FOR EACH ROW
+                      BEGIN
+                         SELECT user_seq.NEXTVAL INTO :NEW.id FROM DUAL;
+                      END;';
+
+   -- Inserção de dados
+   EXECUTE IMMEDIATE 'INSERT INTO "User" (name, email, cpf, password) VALUES (''John Doe'', ''john@example.com'', ''12345678901'', ''password123'')';
+   EXECUTE IMMEDIATE 'INSERT INTO "User" (name, email, cpf, password) VALUES (''Jane Doe'', ''jane@example.com'', ''98765432109'', ''securepass'')';
+   EXECUTE IMMEDIATE 'INSERT INTO "User" (name, email, cpf, password) VALUES (''Bob Smith'', ''bob@example.com'', ''65432109876'', ''secretword'')';
+
+   RETURN 'Tabela "User" criada e dados inseridos com sucesso.';
+EXCEPTION
+   WHEN OTHERS THEN
+      RETURN 'Erro ao criar a tabela: ' || SQLERRM;
+END criar_tabela_user_e_inserir;
+/
+
+CREATE OR REPLACE FUNCTION criar_tabela_water_registry_e_inserir RETURN VARCHAR2 IS
+BEGIN
+   -- Criação da tabela
+   EXECUTE IMMEDIATE 'CREATE TABLE waterRegistry (
+                        id NUMBER PRIMARY KEY,
+                        date VARCHAR2(255),
+                        quantity NUMBER,
+                        user_id NUMBER,
+                        CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES "User" (id)
+                     )';
+
+   -- Criação da sequência
+   EXECUTE IMMEDIATE 'CREATE SEQUENCE waterRegistry_seq START WITH 1 INCREMENT BY 1';
+
+   -- Criação do gatilho
+   EXECUTE IMMEDIATE 'CREATE OR REPLACE TRIGGER waterRegistry_trigger
+                      BEFORE INSERT ON waterRegistry
+                      FOR EACH ROW
+                      BEGIN
+                         SELECT waterRegistry_seq.NEXTVAL INTO :NEW.id FROM DUAL;
+                      END;';
+
+   -- Inserção de dados
+   EXECUTE IMMEDIATE 'INSERT INTO waterRegistry (date, quantity, user_id) VALUES (''20123-11-22T14:48:00.000Z'', 500, 1)';
+   EXECUTE IMMEDIATE 'INSERT INTO waterRegistry (date, quantity, user_id) VALUES (''20123-11-22T14:48:00.000Z'', 750, 2)';
+   EXECUTE IMMEDIATE 'INSERT INTO waterRegistry (date, quantity, user_id) VALUES (''20123-11-22T14:48:00.000Z'', 600, 3)';
+
+   RETURN 'Tabela waterRegistry criada e dados inseridos com sucesso.';
+EXCEPTION
+   WHEN OTHERS THEN
+      RETURN 'Erro ao criar a tabela: ' || SQLERRM;
+END criar_tabela_water_registry_e_inserir;
+/
+
+CREATE OR REPLACE FUNCTION criar_tabela_workout_registry_e_inserir RETURN VARCHAR2 IS
+BEGIN
+   -- Criação da tabela
+   EXECUTE IMMEDIATE 'CREATE TABLE workoutRegistry (
+                        id NUMBER PRIMARY KEY,
+                        date VARCHAR2(255),
+                        duration VARCHAR2(50),
+                        type VARCHAR2(50),
+                        user_id NUMBER,
+                        CONSTRAINT fk_user_id_workout FOREIGN KEY (user_id) REFERENCES "User" (id)
+                     )';
+
+   -- Criação da sequência
+   EXECUTE IMMEDIATE 'CREATE SEQUENCE workoutRegistry_seq START WITH 1 INCREMENT BY 1';
+
+   -- Criação do gatilho
+   EXECUTE IMMEDIATE 'CREATE OR REPLACE TRIGGER workoutRegistry_trigger
+                      BEFORE INSERT ON workoutRegistry
+                      FOR EACH ROW
+                      BEGIN
+                         SELECT workoutRegistry_seq.NEXTVAL INTO :NEW.id FROM DUAL;
+                      END;';
+
+   -- Inserção de dados
+   EXECUTE IMMEDIATE 'INSERT INTO workoutRegistry (date, duration, type, user_id) VALUES (''20123-11-22T14:48:00.000Z'', ''30 min'', ''Yoga'', 1)';
+   EXECUTE IMMEDIATE 'INSERT INTO workoutRegistry (date, duration, type, user_id) VALUES (''20123-11-22T14:48:00.000Z'', ''1hr 45 min'', ''Boxe'', 2)';
+   EXECUTE IMMEDIATE 'INSERT INTO workoutRegistry (date, duration, type, user_id) VALUES (''20123-11-22T14:48:00.000Z'', ''50 min'', ''CrossFit'', 3)';
+
+   RETURN 'Tabela workoutRegistry criada e dados inseridos com sucesso.';
+EXCEPTION
+   WHEN OTHERS THEN
+      RETURN 'Erro ao criar a tabela: ' || SQLERRM;
+END criar_tabela_workout_registry_e_inserir;
+/
+
+CREATE OR REPLACE PROCEDURE excluir_registros_antigos AS
+BEGIN
+   -- Excluir registros de treino antigos (por exemplo, mais de 30 dias)
+   DELETE FROM workoutRegistry
+   WHERE TO_DATE("date", 'YYYY-MM-DD') < SYSDATE - 30;
+
+   -- Excluir registros de hidratação antigos (por exemplo, mais de 15 dias)
+   DELETE FROM waterRegistry
+   WHERE TO_DATE("date", 'YYYY-MM-DD') < SYSDATE - 15;
+
+   COMMIT;
+END;
+/
+
+CREATE OR REPLACE PROCEDURE gerar_relatorio_diario(p_user_id NUMBER, p_date DATE) IS
+BEGIN
+   -- Exemplo de consulta para obter dados do dia
+   DBMS_OUTPUT.PUT_LINE('Relatório de Desempenho Diário:');
+   
+   -- Água consumida
+   SELECT NVL(SUM(quantity), 0) INTO water_consumed
+   FROM waterRegistry
+   WHERE user_id = p_user_id AND TO_DATE(date, 'YYYY-MM-DD') = p_date;
+
+   DBMS_OUTPUT.PUT_LINE('Água Consumida: ' || water_consumed || ' ml');
+
+   -- Tempo de exercício
+   SELECT NVL(SUM(TO_NUMBER(duration)), 0) INTO exercise_duration
+   FROM workoutRegistry
+   WHERE user_id = p_user_id AND TO_DATE(date, 'YYYY-MM-DD') = p_date;
+
+   DBMS_OUTPUT.PUT_LINE('Tempo de Exercício: ' || exercise_duration || ' minutos');
+END;
+/
